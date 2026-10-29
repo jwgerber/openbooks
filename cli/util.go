@@ -38,7 +38,7 @@ func instantiate(config *Config) {
 	fmt.Printf("Connecting to %s.", config.Server)
 	conn := irc.New(config.UserName, config.Version)
 	config.irc = conn
-	err := core.Join(conn, config.Server, config.EnableTLS, config.Channel)
+	err := core.Join(conn, config.Server, config.EnableTLS)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -51,6 +51,7 @@ func instantiate(config *Config) {
 func addEssentialHandlers(handler core.EventHandler, config *Config) {
 	handler[core.Ping] = config.pingHandler
 	handler[core.Version] = config.versionHandler
+	handler[core.Welcome] = core.JoinOnWelcome(config.irc, config.Channel)
 	handler[core.ServerList] = func(text string) {
 		servers = core.ParseServers(text).ElevatedUsers
 	}

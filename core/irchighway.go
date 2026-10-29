@@ -3,7 +3,6 @@ package core
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/evan-buss/openbooks/irc"
 )
@@ -16,17 +15,18 @@ func NormalizeChannel(name string) string {
 	return strings.TrimLeft(strings.TrimSpace(name), "#")
 }
 
-// Join connects to the IRC server and joins the given channel
-func Join(irc *irc.Conn, address string, enableTLS bool, channel string) error {
-	err := irc.Connect(address, enableTLS)
-	if err != nil {
-		return err
+// Join connects to the IRC server. The channel is joined later, when the
+// server's 001 welcome arrives (see JoinOnWelcome): some networks, like
+// Undernet, reject JOIN with "451 Register first" before registration ends.
+func Join(irc *irc.Conn, address string, enableTLS bool) error {
+	return irc.Connect(address, enableTLS)
+}
+
+// JoinOnWelcome returns a Welcome handler that joins the given channel.
+func JoinOnWelcome(irc *irc.Conn, channel string) HandlerFunc {
+	return func(_ string) {
+		irc.JoinChannel(NormalizeChannel(channel))
 	}
-	// Wait before joining the channel
-	// Often you recieve a private message from the server
-	time.Sleep(time.Second * 2)
-	irc.JoinChannel(NormalizeChannel(channel))
-	return nil
 }
 
 // SearchBook sends a search query to the search bot

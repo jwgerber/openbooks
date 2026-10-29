@@ -23,7 +23,11 @@ export const openbooksApi = createApi({
     getServers: builder.query<string[], null>({
       query: () => `servers`,
       transformResponse: (ircServers: IrcServer) => {
-        return ircServers.elevatedUsers ?? [];
+        // Any nick in the channel counts as online (matches server-side ranking).
+        return [
+          ...(ircServers.elevatedUsers ?? []),
+          ...(ircServers.regularUsers ?? [])
+        ];
       }
     }),
     getBooks: builder.query<Book[], null>({

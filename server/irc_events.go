@@ -19,6 +19,7 @@ func (server *server) NewIrcEventHandler(client *Client) core.EventHandler {
 	handler[core.Ping] = client.pingHandler
 	handler[core.ServerList] = client.userListHandler(server.repository)
 	handler[core.Version] = client.versionHandler(server.config.UserAgent)
+	handler[core.Welcome] = core.JoinOnWelcome(client.irc, server.config.Channel)
 	return handler
 }
 

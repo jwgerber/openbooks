@@ -36,3 +36,12 @@ func TestCaseInsensitiveSort(t *testing.T) {
 		}
 	}
 }
+
+func TestOnlineSet_CaseInsensitive(t *testing.T) {
+	online := ParseServers("@Oatmeal +Pondering regularguy").OnlineSet()
+	for _, nick := range []string{"oatmeal", "pondering", "regularguy"} {
+		if !online[nick] {
+			t.Errorf("%q missing from online set %v", nick, online)
+		}
+	}
+}
