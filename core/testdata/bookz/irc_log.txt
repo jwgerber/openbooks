@@ -1,0 +1,13 @@
+:dallas.tx.us.undernet.org 001 rdr17582 :Welcome to the UnderNet IRC Network, rdr17582
+:dallas.tx.us.undernet.org 353 rdr17582 = #bookz :rdr17582 reader1 @Bsk +Horla
+:dallas.tx.us.undernet.org 353 rdr17582 = #bookz :reader2 +Oatmeal +SearchOok +Ook +adiroman
+:dallas.tx.us.undernet.org 366 rdr17582 #bookz :End of /NAMES list.
+PING :1329404100
+:SearchOok!ook@OokMP3.users.undernet.org NOTICE rdr17582 :1,9<<SearchBot>> Your search for "12,09project hail mary01,09" has been accepted. Searching...
+:SearchOok!ook@OokMP3.users.undernet.org NOTICE rdr17582 :1,9<<SearchBot>> Your search for "12,09project hail mary01,09" returned 30 matches. Sending results to you as12 SearchBot_results_for_ project hail mary.txt.zip01,09. Search took 1.17 seconds.
+:SearchOok!ook@OokMP3.users.undernet.org NOTICE rdr17582 :DCC Send SearchBot_results_for_ project hail mary.txt.zip (86.178.165.84)
+:Oatmeal!Oatmeal@2604:9cc0:184f:3b::1 NOTICE rdr17582 :Your search for "zzqxnonexistent" returned 0 matches in the Oatmeal catalogue. Search took 0.09 seconds.
+:SearchOok!ook@OokMP3.users.undernet.org NOTICE rdr17582 :1,9<<SearchBot>> Your search for "12,09zzqxnonexistent01,09" has been accepted. Searching...
+:SearchOok!ook@OokMP3.users.undernet.org NOTICE rdr17582 :1,9<<SearchBot>> Sorry, your search for "12,09zzqxnonexistent01,09" returned no matches. Search took 1.03 seconds.
+:SearchOok!ook@OokMP3.users.undernet.org PRIVMSG rdr17582 :DCC SEND SearchBot_results_for__project_hail_mary.txt.zip 1454548308 2053 959
+:Oatmeal!Oatmeal@host PRIVMSG rdr17582 :DCC SEND "Andy_Weir_-_Project_Hail_Mary.epub" 1454548308 2054 6438400
