@@ -42,6 +42,7 @@ const (
 	versionInquiry         = "\x01VERSION\x01"
 	welcomeNumeric         = "001"
 	nickInUseNumeric       = "433"
+	nickUnavailableNumeric = "437"
 )
 
 // userListPart is an internal event for a 353 NAMES line; StartReader
@@ -56,7 +57,7 @@ func classify(text string) event {
 		switch fields[1] {
 		case welcomeNumeric:
 			return Welcome
-		case nickInUseNumeric:
+		case nickInUseNumeric, nickUnavailableNumeric:
 			return NickInUse
 		case beginUserList:
 			return userListPart

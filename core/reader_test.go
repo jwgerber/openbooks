@@ -16,11 +16,12 @@ func TestClassify_WelcomeOnlyOnNumeric001(t *testing.T) {
 
 func TestClassify_NumericsMatchCommandFieldOnly(t *testing.T) {
 	cases := map[string]event{
-		":dallas.tx.us.undernet.org 353 me = #bookz :a b":                         userListPart,
-		":dallas.tx.us.undernet.org 366 me #bookz :End of /NAMES list.":           ServerList,
-		":x!u@h PRIVMSG #bookz :!Horla Anthology 1366 - Tales.epub":               noOp,
-		":reader3661!u@h JOIN #bookz":                                             noOp,
-		":dallas.tx.us.undernet.org 433 * rdrtest42 :Nickname is already in use.": NickInUse,
+		":dallas.tx.us.undernet.org 353 me = #bookz :a b":                           userListPart,
+		":dallas.tx.us.undernet.org 366 me #bookz :End of /NAMES list.":             ServerList,
+		":x!u@h PRIVMSG #bookz :!Horla Anthology 1366 - Tales.epub":                 noOp,
+		":reader3661!u@h JOIN #bookz":                                               noOp,
+		":dallas.tx.us.undernet.org 433 * rdrtest42 :Nickname is already in use.":   NickInUse,
+		":irc.example.net 437 * rdrtest42 :Nick/channel is temporarily unavailable": NickInUse,
 	}
 	for line, want := range cases {
 		if got := classify(line); got != want {

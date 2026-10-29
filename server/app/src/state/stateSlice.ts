@@ -104,19 +104,25 @@ const setSearchResults = createAsyncThunk<
 >(
   "state/set_search_results",
   async ({ books, errors }: SearchResponse, { dispatch, getState }) => {
-    const activeItem = getState().state.activeItem;
-    if (activeItem === null) {
+    // Replies belong to the newest search still waiting for results, not to
+    // whichever history item the user is viewing.
+    const pending = getState().history.items.find(
+      (item) => item.results === undefined
+    );
+    if (pending === undefined) {
       return;
     }
     const updatedItem: HistoryItem = {
-      query: activeItem.query,
-      timestamp: activeItem.timestamp,
+      query: pending.query,
+      timestamp: pending.timestamp,
       results: books,
       errors: errors
     };
 
-    dispatch(setActiveItem(updatedItem));
     dispatch(updateHistoryItem(updatedItem));
+    if (getState().state.activeItem?.timestamp === pending.timestamp) {
+      dispatch(setActiveItem(updatedItem));
+    }
   }
 );
 

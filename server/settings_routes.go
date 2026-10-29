@@ -80,13 +80,16 @@ func writeSettingsError(w http.ResponseWriter, message string) {
 // current settings. Closing the old connection ends its reader goroutine.
 func (c *Client) reconnect(server *server) {
 	c.log.Println("Reconnecting to IRC with new settings.")
+	c.joined.Store(false)
 	c.irc.Disconnect()
 	c.irc = server.newIrcConn()
 	c.startIrcConnection(server)
 
 	// The browser may have left while we were dialing; don't leave an
 	// orphaned IRC session holding the nickname.
-	if _, ok := server.lookupClient(c.uuid); !ok {
+	// A reload re-registers the same cookie UUID as a new *Client, so compare
+	// identity, not presence.
+	if current, ok := server.lookupClient(c.uuid); !ok || current != c {
 		c.log.Println("Client left during reconnect; closing IRC session.")
 		c.irc.Disconnect()
 	}

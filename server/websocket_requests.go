@@ -112,6 +112,12 @@ func (c *Client) sendSearchRequest(s *SearchRequest, server *server) {
 
 // handle DownloadRequests by sending the request to the book server
 func (c *Client) sendDownloadRequest(d *DownloadRequest) {
+	// Same as searches: before the JOIN the request would be silently dropped.
+	if !c.joined.Load() {
+		c.trySend(newFailedDownloadResponse("Still connecting to the channel. Try again in a few seconds."))
+		return
+	}
+
 	core.DownloadBook(c.irc, d.Book)
 	c.trySend(newStatusResponse(NOTIFY, "Download request received."))
 }

@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/evan-buss/openbooks/core"
 	"github.com/evan-buss/openbooks/irc"
 	"github.com/google/uuid"
 )
@@ -90,4 +89,44 @@ func TestReconnect_DisconnectsIfClientLeftMeanwhile(t *testing.T) {
 	}
 }
 
-var _ = core.Welcome
+func TestReconnect_DisconnectsIfReplacedBySameBrowser(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+
+	srv, _ := newTestServer(t)
+	srv.settings.Server = listener.Addr().String()
+	c := newTestClient()
+	// A reload registers a new *Client under the same cookie UUID.
+	replacement := newTestClient()
+	replacement.uuid = c.uuid
+	srv.clients[c.uuid] = replacement
+
+	go c.reconnect(srv)
+	conn, err := listener.Accept()
+	if err != nil {
+		t.Fatal(err)
+	}
+	conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+	buf := make([]byte, 512)
+	for {
+		if _, err := conn.Read(buf); err != nil {
+			if ne, ok := err.(net.Error); ok && ne.Timeout() {
+				t.Fatal("old client's IRC session left open after a reload replaced it")
+			}
+			return
+		}
+	}
+}
+
+func TestDownloadBeforeJoin_EndsInFlightDownload(t *testing.T) {
+	c := newTestClient()
+	c.sendDownloadRequest(&DownloadRequest{Book: "!Bsk Some Book.epub"})
+
+	resp, ok := (<-c.send).(DownloadResponse)
+	if !ok || resp.MessageType != DOWNLOAD || resp.DownloadPath != "" {
+		t.Errorf("want failed DownloadResponse, got %#v", resp)
+	}
+}
