@@ -90,6 +90,10 @@ Results are sent to the browser already sorted, with the score available.
 - Full results table below (existing table), sorted by score.
 - Settings panel (drawer or modal) with the fields above.
 - Existing queue/download progress behaviour kept.
+- Download to your computer: keep openbooks' existing behaviour unchanged.
+  A finished book is also sent to the browser, and the library list
+  (`/library`) offers per-book download links. Browser downloads stay on by
+  default, and books still persist on the NAS.
 
 ## Builder's calls (made during review — Josh to check)
 
