@@ -50,7 +50,8 @@ func (server *server) routeMessage(message Request, c *Client) {
 // handle ConnectionRequests and either connect to the server or do nothing
 func (c *Client) startIrcConnection(server *server) {
 	server.repository.Reset()
-	err := core.Join(c.irc, server.config.Server, server.config.EnableTLS)
+	settings := server.currentSettings()
+	err := core.Join(c.irc, settings.Server, settings.EnableTLS)
 	if err != nil {
 		c.log.Println(err)
 		c.send <- newErrorResponse("Unable to connect to IRC server.")
@@ -95,9 +96,10 @@ func (c *Client) sendSearchRequest(s *SearchRequest, server *server) {
 	}
 
 	// Refresh NAMES so the online list used for ranking is current.
-	c.irc.GetUsers(core.NormalizeChannel(server.config.Channel))
+	settings := server.currentSettings()
+	c.irc.GetUsers(settings.Channel)
 	c.lastQuery = s.Query
-	core.SearchBook(c.irc, server.config.SearchBot, s.Query)
+	core.SearchBook(c.irc, settings.SearchBot, s.Query)
 	server.lastSearch = time.Now()
 
 	c.send <- newStatusResponse(NOTIFY, "Search request sent.")

@@ -36,8 +36,7 @@ var desktopConfig server.Config
 
 func init() {
 	desktopCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Enable debug mode.")
-	desktopCmd.PersistentFlags().StringVarP(&globalFlags.UserName, "name", "n", "", "Username used to connect to IRC server.")
-	desktopCmd.MarkPersistentFlagRequired("name")
+	desktopCmd.PersistentFlags().StringVarP(&globalFlags.UserName, "name", "n", "", "Username used to connect to IRC server. Random if empty.")
 	desktopCmd.PersistentFlags().StringVarP(&globalFlags.Server, "server", "s", "irc.undernet.org:6667", "IRC server to connect to.")
 	desktopCmd.PersistentFlags().StringVarP(&globalFlags.Channel, "channel", "c", "bookz", "IRC channel to join (with or without '#').")
 	desktopCmd.PersistentFlags().BoolVar(&globalFlags.EnableTLS, "tls", false, "Connect to server using TLS.")

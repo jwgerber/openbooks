@@ -5,8 +5,6 @@ import (
 	"embed"
 	"encoding/json"
 	"errors"
-	"fmt"
-	"github.com/evan-buss/openbooks/irc"
 	"io/fs"
 	"log"
 	"net/http"
@@ -30,6 +28,8 @@ func (server *server) registerRoutes() *chi.Mux {
 	router.Get("/ws", server.serveWs())
 	router.Get("/stats", server.statsHandler())
 	router.Get("/servers", server.serverListHandler())
+	router.Get("/settings", server.getSettingsHandler())
+	router.Put("/settings", server.putSettingsHandler())
 
 	router.Group(func(r chi.Router) {
 		r.Use(server.requireUser)
@@ -81,8 +81,8 @@ func (server *server) serveWs() http.HandlerFunc {
 			conn: conn,
 			send: make(chan interface{}, 128),
 			uuid: userId,
-			irc:  irc.New(server.config.UserName, server.config.UserAgent),
-			log:  log.New(os.Stdout, fmt.Sprintf("CLIENT (%s): ", server.config.UserName), log.LstdFlags|log.Lmsgprefix),
+			irc:  server.newIrcConn(),
+			log:  log.New(os.Stdout, "CLIENT: ", log.LstdFlags|log.Lmsgprefix),
 			ctx:  context.Background(),
 		}
 

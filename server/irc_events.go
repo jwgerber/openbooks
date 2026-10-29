@@ -19,7 +19,7 @@ func (server *server) NewIrcEventHandler(client *Client) core.EventHandler {
 	handler[core.Ping] = client.pingHandler
 	handler[core.ServerList] = client.userListHandler(server.repository)
 	handler[core.Version] = client.versionHandler(server.config.UserAgent)
-	handler[core.Welcome] = core.JoinOnWelcome(client.irc, server.config.Channel)
+	handler[core.Welcome] = core.JoinOnWelcome(client.irc, server.currentSettings().Channel)
 	return handler
 }
 
@@ -55,7 +55,7 @@ func (c *Client) searchResultHandler(server *server) core.HandlerFunc {
 
 		bookResults = core.RankBooks(bookResults, core.RankOptions{
 			Query:       c.lastQuery,
-			FormatOrder: core.DefaultFormatOrder,
+			FormatOrder: server.currentSettings().FormatOrder,
 			Online:      server.repository.servers.OnlineSet(),
 		})
 

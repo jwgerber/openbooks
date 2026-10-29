@@ -22,7 +22,8 @@ func init() {
 	serverCmd.Flags().BoolVar(&serverConfig.DisableBrowserDownloads, "no-browser-downloads", false, "The browser won't recieve and download eBook files, but they are still saved to the defined 'dir' path.")
 	serverCmd.Flags().StringVar(&serverConfig.Basepath, "basepath", "/", `Base path where the application is accessible. For example "/openbooks/".`)
 	serverCmd.Flags().BoolVarP(&openBrowser, "browser", "b", false, "Open the browser on server start.")
-	serverCmd.Flags().BoolVar(&serverConfig.Persist, "persist", false, "Persist eBooks in 'dir'. Default is to delete after sending.")
+	serverCmd.Flags().BoolVar(&serverConfig.Persist, "persist", true, "Persist eBooks in 'dir'. Always on in this fork.")
+	serverCmd.Flags().StringVar(&serverConfig.ConfigDir, "config-dir", "", "Directory holding settings.json. Falls back to $CONFIG_DIR; empty keeps settings in memory only.")
 	serverCmd.Flags().StringVarP(&serverConfig.DownloadDir, "dir", "d", filepath.Join(os.TempDir(), "openbooks"), "The directory where eBooks are saved when persist enabled.")
 }
 
@@ -42,6 +43,11 @@ var serverCmd = &cobra.Command{
 			}
 		}
 		serverConfig.Basepath = sanitizePath(serverConfig.Basepath)
+		if serverConfig.ConfigDir == "" {
+			serverConfig.ConfigDir = os.Getenv("CONFIG_DIR")
+		}
+		// Books always stay on disk; the settings panel has no persist toggle.
+		serverConfig.Persist = true
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if openBrowser {

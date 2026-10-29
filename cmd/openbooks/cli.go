@@ -2,7 +2,9 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"strings"
 
@@ -32,6 +34,9 @@ var cliCmd = &cobra.Command{
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		cliConfig.Version = globalFlags.UserAgent
 		cliConfig.UserName = globalFlags.UserName
+		if cliConfig.UserName == "" {
+			cliConfig.UserName = fmt.Sprintf("reader%04d", rand.Intn(10000))
+		}
 		cliConfig.Server = globalFlags.Server
 		cliConfig.Channel = globalFlags.Channel
 		cliConfig.Log = globalFlags.Log
