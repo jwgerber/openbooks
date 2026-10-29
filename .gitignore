@@ -129,3 +129,6 @@ typings/
 .dynamodb/
 
 # End of https://www.gitignore.io/api/node,go
+.superpowers/
+tmp-capture/
+tmp-config/
