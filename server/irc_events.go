@@ -10,7 +10,7 @@ import (
 
 func (server *server) NewIrcEventHandler(client *Client) core.EventHandler {
 	handler := core.EventHandler{}
-	handler[core.SearchResult] = client.searchResultHandler(server.config.DownloadDir)
+	handler[core.SearchResult] = client.searchResultHandler(server)
 	handler[core.BookResult] = client.bookResultHandler(server.config.DownloadDir, server.config.DisableBrowserDownloads)
 	handler[core.NoResults] = client.noResultsHandler
 	handler[core.BadServer] = client.badServerHandler
@@ -24,9 +24,9 @@ func (server *server) NewIrcEventHandler(client *Client) core.EventHandler {
 }
 
 // searchResultHandler downloads from DCC server, parses data, and sends data to client
-func (c *Client) searchResultHandler(downloadDir string) core.HandlerFunc {
+func (c *Client) searchResultHandler(server *server) core.HandlerFunc {
 	return func(text string) {
-		extractedPath, err := core.DownloadExtractDCCString(filepath.Join(downloadDir, "books"), text, nil)
+		extractedPath, err := core.DownloadExtractDCCString(filepath.Join(server.config.DownloadDir, "books"), text, nil)
 		if err != nil {
 			c.log.Println(err)
 			c.send <- newErrorResponse("Error when downloading search results.")
@@ -52,6 +52,12 @@ func (c *Client) searchResultHandler(downloadDir string) core.HandlerFunc {
 				c.log.Println(err)
 			}
 		}
+
+		bookResults = core.RankBooks(bookResults, core.RankOptions{
+			Query:       c.lastQuery,
+			FormatOrder: core.DefaultFormatOrder,
+			Online:      server.repository.servers.OnlineSet(),
+		})
 
 		c.log.Printf("Sending %d search results.\n", len(bookResults))
 		c.send <- newSearchResponse(bookResults, parseErrors)

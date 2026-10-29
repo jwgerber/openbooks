@@ -49,6 +49,9 @@ type Client struct {
 
 	log *log.Logger
 
+	// Query of the most recent search, used to rank its results.
+	lastQuery string
+
 	// Context is used to signal when this client should close.
 	ctx context.Context
 }

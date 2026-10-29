@@ -96,6 +96,7 @@ func (c *Client) sendSearchRequest(s *SearchRequest, server *server) {
 
 	// Refresh NAMES so the online list used for ranking is current.
 	c.irc.GetUsers(core.NormalizeChannel(server.config.Channel))
+	c.lastQuery = s.Query
 	core.SearchBook(c.irc, server.config.SearchBot, s.Query)
 	server.lastSearch = time.Now()
 
