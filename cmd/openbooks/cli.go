@@ -33,6 +33,7 @@ var cliCmd = &cobra.Command{
 		cliConfig.Version = globalFlags.UserAgent
 		cliConfig.UserName = globalFlags.UserName
 		cliConfig.Server = globalFlags.Server
+		cliConfig.Channel = globalFlags.Channel
 		cliConfig.Log = globalFlags.Log
 		cliConfig.SearchBot = globalFlags.SearchBot
 		cliConfig.EnableTLS = globalFlags.EnableTLS

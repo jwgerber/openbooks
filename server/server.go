@@ -51,6 +51,7 @@ type Config struct {
 	DownloadDir             string
 	Basepath                string
 	Server                  string
+	Channel                 string
 	EnableTLS               bool
 	SearchTimeout           time.Duration
 	SearchBot               string

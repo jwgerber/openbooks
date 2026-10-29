@@ -8,18 +8,24 @@ import (
 	"github.com/evan-buss/openbooks/irc"
 )
 
-// Specific irc.irchighway.net commands
+// Book channel commands. Originally written for irc.irchighway.net #ebooks,
+// they work on any network that uses the @search / !Server conventions.
 
-// Join connects to the irc.irchighway.net server and joins the #ebooks channel
-func Join(irc *irc.Conn, address string, enableTLS bool) error {
+// NormalizeChannel returns the bare channel name without leading '#' or whitespace.
+func NormalizeChannel(name string) string {
+	return strings.TrimLeft(strings.TrimSpace(name), "#")
+}
+
+// Join connects to the IRC server and joins the given channel
+func Join(irc *irc.Conn, address string, enableTLS bool, channel string) error {
 	err := irc.Connect(address, enableTLS)
 	if err != nil {
 		return err
 	}
-	// Wait before joining the ebooks room
+	// Wait before joining the channel
 	// Often you recieve a private message from the server
 	time.Sleep(time.Second * 2)
-	irc.JoinChannel("ebooks")
+	irc.JoinChannel(NormalizeChannel(channel))
 	return nil
 }
 
