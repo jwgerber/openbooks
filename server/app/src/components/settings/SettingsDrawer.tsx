@@ -210,7 +210,11 @@ export default function SettingsDrawer({ opened, onClose }: Props) {
             label="Wait for the current search/download to finish"
             disabled={!busy}>
             <div>
-              <Button type="submit" fullWidth loading={isSaving} disabled={busy}>
+              <Button
+                type="submit"
+                fullWidth
+                loading={isSaving}
+                disabled={busy}>
                 Save
               </Button>
             </div>

@@ -32,6 +32,7 @@ export const openbooksApi = createApi({
   endpoints: (builder) => ({
     getServers: builder.query<string[], null>({
       query: () => `servers`,
+      providesTags: ["servers"],
       transformResponse: (ircServers: IrcServer) => {
         // Any nick in the channel counts as online (matches server-side ranking).
         return [

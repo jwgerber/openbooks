@@ -254,7 +254,7 @@ export default function BookTable({ books }: BookTableProps) {
   );
 }
 
-function DownloadButton({ book }: { book: string }) {
+export function DownloadButton({ book }: { book: string }) {
   const dispatch = useAppDispatch();
 
   const [clicked, setClicked] = useState(false);

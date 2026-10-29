@@ -50,6 +50,8 @@ export interface BookDetail {
   format: string;
   size: string;
   full: string;
+  // Ranking score from the server; results arrive sorted by it, highest first.
+  score: number;
 }
 
 export interface ParseError {

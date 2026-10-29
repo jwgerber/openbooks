@@ -90,12 +90,12 @@ func TestRank_OnlineTiebreak(t *testing.T) {
 
 func TestRank_NormalizesPunctuationAndDiacritics(t *testing.T) {
 	ranked := RankBooks([]BookDetail{book("A", "Orson Scott Card", "Ender's Game", "epub", "")}, defaultOpts("enders game"))
-	if got := ranked[0].Score / 1000; got != 10 {
+	if got := ranked[0].Score / 10000; got != 10 {
 		t.Errorf("ender's game match = %d, want 10", got)
 	}
 
 	ranked = RankBooks([]BookDetail{book("A", "Charlotte Brontë", "Jane Eyre", "epub", "")}, defaultOpts("jane eyre bronte"))
-	if got := ranked[0].Score / 1000; got != 10 {
+	if got := ranked[0].Score / 10000; got != 10 {
 		t.Errorf("bronte match = %d, want 10", got)
 	}
 }
@@ -133,5 +133,38 @@ func TestRank_BookzFixture(t *testing.T) {
 
 	if ranked[0].Format != "epub" {
 		t.Errorf("top pick is %s (%s), want an epub", ranked[0].Format, ranked[0].Full)
+	}
+}
+
+func TestRank_CloserTitleWinsWithinSameFormat(t *testing.T) {
+	ranked := RankBooks([]BookDetail{
+		book("Bsk", "Debra White Smith", "(Jane Austen 01) - First Impressions (Pride and Prejudice)", "epub", ""),
+		book("Oatmeal", "Jane Austen", "Pride and Prejudice", "epub", ""),
+	}, defaultOpts("jane austen pride and prejudice"))
+
+	if ranked[0].Author != "Jane Austen" {
+		t.Errorf("got %v first, want Austen's own book", ranked[0].Author)
+	}
+}
+
+func TestRank_FormatBeatsCloseness(t *testing.T) {
+	ranked := RankBooks([]BookDetail{
+		book("A", "Andy Weir", "Project Hail Mary", "pdf", ""),
+		book("B", "Andy Weir", "Project Hail Mary: A Novel", "epub", ""),
+	}, defaultOpts("project hail mary"))
+
+	if ranked[0].Format != "epub" {
+		t.Errorf("got %v, want the epub first", titles(ranked))
+	}
+}
+
+func TestRank_ReleaseTagsDoNotCountAsExtraWords(t *testing.T) {
+	ranked := RankBooks([]BookDetail{
+		book("A", "Andy Weir", "Project Hail Mary", "epub", ""),
+		book("B", "Andy Weir", "Project Hail Mary (Retail)", "epub", "!B Andy Weir - Project Hail Mary (Retail).epub"),
+	}, defaultOpts("project hail mary"))
+
+	if ranked[0].Server != "B" {
+		t.Errorf("retail copy should win; got %s first", ranked[0].Server)
 	}
 }

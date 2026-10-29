@@ -15,6 +15,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import image from "../assets/reading.svg";
 import BookTable from "../components/tables/BookTable";
 import ErrorTable from "../components/tables/ErrorTable";
+import TopPicks from "../components/tables/TopPicks";
 import { MessageType } from "../state/messages";
 import { sendMessage, sendSearch, toggleSidebar } from "../state/stateSlice";
 import { useAppDispatch, useAppSelector } from "../state/store";
@@ -188,7 +189,10 @@ export default function SearchPage() {
       ) : errorMode ? (
         errorTable
       ) : (
-        bookTable
+        <>
+          <TopPicks books={activeItem?.results ?? []} />
+          {bookTable}
+        </>
       )}
     </Stack>
   );
