@@ -1,0 +1,10 @@
+# NAS example. Books land in ./books (point it at your share); settings in ./config.
+services:
+  openbooks:
+    build: .
+    ports:
+      - "8080:80"
+    volumes:
+      - ./books:/books
+      - ./config:/config
+    restart: unless-stopped
