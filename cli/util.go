@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -38,6 +39,7 @@ func instantiate(config *Config) {
 	fmt.Printf("Connecting to %s.", config.Server)
 	conn := irc.New(config.UserName, config.Version)
 	config.irc = conn
+	config.joined = make(chan struct{})
 	err := core.Join(conn, config.Server, config.EnableTLS)
 	if err != nil {
 		log.Fatal(err)
@@ -51,7 +53,15 @@ func instantiate(config *Config) {
 func addEssentialHandlers(handler core.EventHandler, config *Config) {
 	handler[core.Ping] = config.pingHandler
 	handler[core.Version] = config.versionHandler
-	handler[core.Welcome] = core.JoinOnWelcome(config.irc, config.Channel)
+	joinChannel := core.JoinOnWelcome(config.irc, config.Channel)
+	var once sync.Once
+	handler[core.Welcome] = func(text string) {
+		joinChannel(text)
+		once.Do(func() { close(config.joined) })
+	}
+	handler[core.NickInUse] = func(_ string) {
+		config.irc.ChangeNick(core.AlternateNick(config.irc.Username))
+	}
 	handler[core.ServerList] = func(text string) {
 		servers = core.ParseServers(text).ElevatedUsers
 	}
@@ -100,4 +110,19 @@ func setLastSearchTime() {
 	}
 
 	os.Chtimes(timestampFilePath, time.Now(), time.Now())
+}
+
+// joinTimeout bounds how long one-shot commands wait for registration.
+const joinTimeout = 60 * time.Second
+
+// waitForJoin blocks until the channel has been joined. Messages sent before
+// the server's 001 welcome are rejected ("451 Register first").
+func (config *Config) waitForJoin() {
+	select {
+	case <-config.joined:
+		// Give the JOIN a moment to complete before talking in the channel.
+		time.Sleep(time.Second)
+	case <-time.After(joinTimeout):
+		log.Fatalf("Timed out joining #%s on %s.\n", core.NormalizeChannel(config.Channel), config.Server)
+	}
 }

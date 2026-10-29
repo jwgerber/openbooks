@@ -19,6 +19,7 @@ type Config struct {
 	SearchBot string
 	Version   string
 	irc       *irc.Conn
+	joined    chan struct{} // closed once the channel JOIN is sent
 }
 
 // StartInteractive instantiates the OpenBooks CLI interface
@@ -40,6 +41,7 @@ func StartInteractive(config Config) {
 	}
 
 	go core.StartReader(ctx, config.irc, handler)
+	config.waitForJoin()
 	terminalMenu(config)
 
 	<-ctx.Done()
@@ -64,6 +66,7 @@ func StartDownload(config Config, download string) {
 
 	fmt.Printf("Sending download request.")
 	go core.StartReader(ctx, config.irc, handler)
+	config.waitForJoin()
 	core.DownloadBook(config.irc, download)
 	fmt.Printf("%sSent download request.", clearLine)
 	fmt.Printf("Waiting for file response.")
@@ -96,6 +99,7 @@ func StartSearch(config Config, query string) {
 	time.Sleep(time.Until(nextSearchTime))
 
 	go core.StartReader(ctx, config.irc, handler)
+	config.waitForJoin()
 	core.SearchBook(config.irc, config.SearchBot, query)
 
 	setLastSearchTime()

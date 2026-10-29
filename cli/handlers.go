@@ -67,8 +67,8 @@ func (c Config) matchesFoundHandler(num string) {
 	fmt.Printf("Found %s search results.", num)
 }
 
-func (c Config) pingHandler(_ string) {
-	c.irc.Pong(c.Server)
+func (c Config) pingHandler(line string) {
+	c.irc.Pong(core.PingToken(line))
 }
 
 func (c *Config) versionHandler(line string) {

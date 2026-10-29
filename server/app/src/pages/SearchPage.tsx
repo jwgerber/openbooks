@@ -16,6 +16,7 @@ import image from "../assets/reading.svg";
 import BookTable from "../components/tables/BookTable";
 import ErrorTable from "../components/tables/ErrorTable";
 import TopPicks from "../components/tables/TopPicks";
+import { isSearchInFlight } from "../state/historySlice";
 import { MessageType } from "../state/messages";
 import { sendMessage, sendSearch, toggleSidebar } from "../state/stateSlice";
 import { useAppDispatch, useAppSelector } from "../state/store";
@@ -127,7 +128,7 @@ export default function SearchPage() {
           <TextInput
             className={classes.wFull}
             variant="filled"
-            disabled={activeItem !== null && !activeItem.results}
+            disabled={isSearchInFlight(activeItem)}
             value={searchQuery}
             onChange={(e: any) => setSearchQuery(e.target.value)}
             placeholder={

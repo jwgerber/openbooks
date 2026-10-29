@@ -81,3 +81,12 @@ export type { HistoryItem };
 export { deleteHistoryItem, addHistoryItem, updateHistoryItem, selectHistory };
 
 export default historySlice.reducer;
+
+// A search counts as in flight until results arrive or this much time passes,
+// so a lost reply can't lock the search box (or Save) forever.
+const SEARCH_IN_FLIGHT_MS = 60_000;
+
+export const isSearchInFlight = (item: HistoryItem | null): boolean =>
+  !!item &&
+  item.results === undefined &&
+  Date.now() - item.timestamp < SEARCH_IN_FLIGHT_MS;

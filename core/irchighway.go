@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"math/rand"
 	"strings"
 
 	"github.com/evan-buss/openbooks/irc"
@@ -29,6 +30,17 @@ func JoinOnWelcome(irc *irc.Conn, channel string) HandlerFunc {
 	}
 }
 
+// maxNickLength is the shortest NICKLEN among supported networks (Undernet: 12).
+const maxNickLength = 12
+
+// AlternateNick returns a different nickname to try after "433 nickname in use".
+func AlternateNick(nick string) string {
+	if len(nick) > maxNickLength-3 {
+		nick = nick[:maxNickLength-3]
+	}
+	return fmt.Sprintf("%s%03d", nick, rand.Intn(1000))
+}
+
 // SearchBook sends a search query to the search bot
 func SearchBook(irc *irc.Conn, searchBot string, query string) {
 	searchBot = strings.TrimPrefix(searchBot, "@")
@@ -47,4 +59,13 @@ func SendVersionInfo(irc *irc.Conn, line string, version string) {
 	sender := strings.Split(line, " ")[0][1:]
 	// TODO: Figure out if there's an automated way to adjust this...
 	irc.SendNotice(sender, fmt.Sprintf("\x01%s\x01", version))
+}
+
+// PingToken returns the parameter of a PING line, which must be echoed back
+// in PONG. Undernet refuses registration ("513 ... PONG <token>") otherwise.
+func PingToken(line string) string {
+	if i := strings.Index(line, "PING "); i >= 0 {
+		return strings.TrimSpace(line[i+len("PING "):])
+	}
+	return strings.TrimSpace(line)
 }

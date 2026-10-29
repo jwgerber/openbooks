@@ -35,10 +35,11 @@ export const openbooksApi = createApi({
       providesTags: ["servers"],
       transformResponse: (ircServers: IrcServer) => {
         // Any nick in the channel counts as online (matches server-side ranking).
+        // Lowercased: IRC nicks are case-insensitive. Compare with isOnline().
         return [
           ...(ircServers.elevatedUsers ?? []),
           ...(ircServers.regularUsers ?? [])
-        ];
+        ].map((nick) => nick.toLowerCase());
       }
     }),
     getBooks: builder.query<Book[], null>({
@@ -74,3 +75,7 @@ export const {
   useGetSettingsQuery,
   useUpdateSettingsMutation
 } = openbooksApi;
+
+// isOnline reports whether a server nick is in the (lowercased) online list.
+export const isOnline = (servers: string[] | undefined, nick: string) =>
+  servers?.includes(nick.toLowerCase()) ?? false;

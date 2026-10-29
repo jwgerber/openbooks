@@ -55,6 +55,15 @@ func (i *Conn) Connect(address string, enableTLS bool) error {
 	return nil
 }
 
+// ChangeNick asks the server for a new nickname.
+func (i *Conn) ChangeNick(nick string) {
+	if !i.IsConnected() {
+		return
+	}
+	i.Username = nick
+	i.Write([]byte("NICK " + nick + "\r\n"))
+}
+
 // Disconnect closes connection to the IRC server
 func (i *Conn) Disconnect() {
 	if !i.IsConnected() {

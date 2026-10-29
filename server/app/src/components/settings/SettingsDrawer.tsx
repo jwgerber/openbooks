@@ -18,11 +18,8 @@ import {
   useGetSettingsQuery,
   useUpdateSettingsMutation
 } from "../../state/api";
+import { isSearchInFlight } from "../../state/historySlice";
 import { useAppSelector } from "../../state/store";
-
-// A search counts as in flight until results arrive or this much time passes,
-// so a lost "no results" reply can't disable Save forever.
-const SEARCH_IN_FLIGHT_MS = 60_000;
 
 interface Props {
   opened: boolean;
@@ -41,12 +38,7 @@ export default function SettingsDrawer({ opened, onClose }: Props) {
     (store) => store.state.inFlightDownloads.length
   );
   const activeItem = useAppSelector((store) => store.state.activeItem);
-  const isSearching =
-    !!activeItem &&
-    activeItem.results === undefined &&
-    activeItem.errors === undefined &&
-    Date.now() - activeItem.timestamp < SEARCH_IN_FLIGHT_MS;
-  const busy = inFlightDownloads > 0 || isSearching;
+  const busy = inFlightDownloads > 0 || isSearchInFlight(activeItem);
 
   useEffect(() => {
     if (opened) {

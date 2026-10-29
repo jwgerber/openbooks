@@ -25,8 +25,9 @@ type server struct {
 	// Shared data
 	repository *Repository
 
-	// Registered clients.
-	clients map[uuid.UUID]*Client
+	// Registered clients, guarded by clientsMu.
+	clients   map[uuid.UUID]*Client
+	clientsMu sync.Mutex
 
 	// Register requests from the clients.
 	register chan *Client
@@ -131,21 +132,25 @@ func (server *server) startClientHub(ctx context.Context) {
 	for {
 		select {
 		case client := <-server.register:
+			server.clientsMu.Lock()
 			server.clients[client.uuid] = client
+			server.clientsMu.Unlock()
 		case client := <-server.unregister:
+			server.clientsMu.Lock()
 			if _, ok := server.clients[client.uuid]; ok {
-				_, cancel := context.WithCancel(client.ctx)
+				client.markClosed()
 				close(client.send)
-				cancel()
 				delete(server.clients, client.uuid)
 			}
+			server.clientsMu.Unlock()
 		case <-ctx.Done():
+			server.clientsMu.Lock()
 			for _, client := range server.clients {
-				_, cancel := context.WithCancel(client.ctx)
+				client.markClosed()
 				close(client.send)
-				cancel()
 				delete(server.clients, client.uuid)
 			}
+			server.clientsMu.Unlock()
 			return
 		}
 	}
@@ -169,4 +174,22 @@ func createBooksDirectory(config Config) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+// clientList returns a snapshot of the registered clients.
+func (server *server) clientList() []*Client {
+	server.clientsMu.Lock()
+	defer server.clientsMu.Unlock()
+	list := make([]*Client, 0, len(server.clients))
+	for _, c := range server.clients {
+		list = append(list, c)
+	}
+	return list
+}
+
+func (server *server) lookupClient(id uuid.UUID) (*Client, bool) {
+	server.clientsMu.Lock()
+	defer server.clientsMu.Unlock()
+	c, ok := server.clients[id]
+	return c, ok
 }

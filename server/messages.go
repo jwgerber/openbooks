@@ -148,3 +148,28 @@ func newErrorResponse(title string) StatusResponse {
 		Title:            title,
 	}
 }
+
+// newEmptySearchResponse finishes a search with no books, so the browser
+// stops waiting for results.
+func newEmptySearchResponse(appearance NotificationType, title string) SearchResponse {
+	return SearchResponse{
+		StatusResponse: StatusResponse{
+			MessageType:      SEARCH,
+			NotificationType: appearance,
+			Title:            title,
+		},
+		Books:  []core.BookDetail{},
+		Errors: []core.ParseError{},
+	}
+}
+
+// newFailedDownloadResponse finishes an in-flight download without a file.
+func newFailedDownloadResponse(title string) DownloadResponse {
+	return DownloadResponse{
+		StatusResponse: StatusResponse{
+			MessageType:      DOWNLOAD,
+			NotificationType: DANGER,
+			Title:            title,
+		},
+	}
+}

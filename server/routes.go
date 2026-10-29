@@ -58,11 +58,9 @@ func (server *server) serveWs() http.HandlerFunc {
 		}
 
 		userId, err := uuid.Parse(cookie.Value)
-		_, alreadyConnected := server.clients[userId]
-
 		// If invalid UUID or the same browser tries to connect again or multiple browser connections
 		// Don't connect to IRC or create new client
-		if err != nil || alreadyConnected || len(server.clients) > 0 {
+		if err != nil || len(server.clientList()) > 0 {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -115,9 +113,10 @@ func (server *server) statsHandler() http.HandlerFunc {
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		result := make([]statsReponse, 0, len(server.clients))
+		clients := server.clientList()
+		result := make([]statsReponse, 0, len(clients))
 
-		for _, client := range server.clients {
+		for _, client := range clients {
 			details := statsReponse{
 				UUID: client.uuid.String(),
 				Name: client.irc.Username,

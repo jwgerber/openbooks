@@ -7,7 +7,7 @@ import {
   Text,
   Tooltip
 } from "@mantine/core";
-import { useGetServersQuery } from "../../state/api";
+import { isOnline, useGetServersQuery } from "../../state/api";
 import { BookDetail } from "../../state/messages";
 import { DownloadButton } from "./BookTable";
 
@@ -33,7 +33,7 @@ export default function TopPicks({ books }: TopPicksProps) {
         Top picks
       </Text>
       {picks.map((book) => {
-        const online = servers?.includes(book.server);
+        const online = isOnline(servers, book.server);
         return (
           <Paper key={book.full} withBorder p="xs" radius="md">
             <Group position="apart" noWrap>

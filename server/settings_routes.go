@@ -61,7 +61,7 @@ func (server *server) putSettingsHandler() http.HandlerFunc {
 		server.settingsMu.Unlock()
 		server.log.Printf("Settings updated: server=%s channel=#%s tls=%v", settings.Server, settings.Channel, settings.EnableTLS)
 
-		for _, client := range server.clients {
+		for _, client := range server.clientList() {
 			go client.reconnect(server)
 		}
 
@@ -83,4 +83,11 @@ func (c *Client) reconnect(server *server) {
 	c.irc.Disconnect()
 	c.irc = server.newIrcConn()
 	c.startIrcConnection(server)
+
+	// The browser may have left while we were dialing; don't leave an
+	// orphaned IRC session holding the nickname.
+	if _, ok := server.lookupClient(c.uuid); !ok {
+		c.log.Println("Client left during reconnect; closing IRC session.")
+		c.irc.Disconnect()
+	}
 }

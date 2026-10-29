@@ -24,6 +24,7 @@ const (
 	Ping           = event(9)
 	Version        = event(10)
 	Welcome        = event(11)
+	NickInUse      = event(12)
 )
 
 // Unique identifiers found in the message for various different events.
@@ -40,6 +41,7 @@ const (
 	endUserList            = "366"
 	versionInquiry         = "\x01VERSION\x01"
 	welcomeNumeric         = "001"
+	nickInUseNumeric       = "433"
 )
 
 // userListPart is an internal event for a 353 NAMES line; StartReader
@@ -48,9 +50,19 @@ const userListPart = event(-1)
 
 // classify determines which event a raw IRC line represents.
 func classify(text string) event {
-	fields := strings.Fields(text)
-	if len(fields) > 1 && fields[1] == welcomeNumeric {
-		return Welcome
+	// Numerics are matched on the command field only: chat lines often
+	// contain numbers like "1366" that must not end a NAMES list.
+	if fields := strings.Fields(text); len(fields) > 1 {
+		switch fields[1] {
+		case welcomeNumeric:
+			return Welcome
+		case nickInUseNumeric:
+			return NickInUse
+		case beginUserList:
+			return userListPart
+		case endUserList:
+			return ServerList
+		}
 	}
 
 	switch {
@@ -70,10 +82,6 @@ func classify(text string) event {
 		case strings.Contains(text, numMatches):
 			return MatchesFound
 		}
-	case strings.Contains(text, beginUserList):
-		return userListPart
-	case strings.Contains(text, endUserList):
-		return ServerList
 	case strings.Contains(text, pingMessage):
 		return Ping
 	case strings.Contains(text, versionInquiry):
