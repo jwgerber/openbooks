@@ -12,13 +12,23 @@ export interface Book {
   time: string;
 }
 
+export interface Settings {
+  server: string;
+  enableTls: boolean;
+  channel: string;
+  searchBot: string;
+  userName: string;
+  formatOrder: string[];
+  downloadDir: string;
+}
+
 export const openbooksApi = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: getApiURL().href,
     credentials: "include",
     mode: "cors"
   }),
-  tagTypes: ["books", "servers"],
+  tagTypes: ["books", "servers", "settings"],
   endpoints: (builder) => ({
     getServers: builder.query<string[], null>({
       query: () => `servers`,
@@ -40,9 +50,26 @@ export const openbooksApi = createApi({
         method: "DELETE"
       }),
       invalidatesTags: ["books"]
+    }),
+    getSettings: builder.query<Settings, null>({
+      query: () => `settings`,
+      providesTags: ["settings"]
+    }),
+    updateSettings: builder.mutation<Settings, Settings>({
+      query: (settings) => ({
+        url: `settings`,
+        method: "PUT",
+        body: settings
+      }),
+      invalidatesTags: ["settings", "servers"]
     })
   })
 });
 
-export const { useGetServersQuery, useGetBooksQuery, useDeleteBookMutation } =
-  openbooksApi;
+export const {
+  useGetServersQuery,
+  useGetBooksQuery,
+  useDeleteBookMutation,
+  useGetSettingsQuery,
+  useUpdateSettingsMutation
+} = openbooksApi;
