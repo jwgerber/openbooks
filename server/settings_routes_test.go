@@ -66,3 +66,19 @@ func TestPutSettings_PersistsAndReturnsSaved(t *testing.T) {
 		t.Errorf("settings not persisted across restart: %+v", reloaded)
 	}
 }
+
+func TestSearchResultsDir_ExistsOutsideBooksFolder(t *testing.T) {
+	books := t.TempDir()
+	srv := New(Config{DownloadDir: books})
+
+	dir, err := srv.searchResultsDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info, err := os.Stat(dir); err != nil || !info.IsDir() {
+		t.Fatalf("search results dir %q not created: %v", dir, err)
+	}
+	if rel, err := filepath.Rel(books, dir); err == nil && !strings.HasPrefix(rel, "..") {
+		t.Errorf("search results dir %q is inside the books folder %q; watchers like Calibre would import them", dir, books)
+	}
+}

@@ -31,7 +31,13 @@ func (server *server) NewIrcEventHandler(client *Client) core.EventHandler {
 // searchResultHandler downloads from DCC server, parses data, and sends data to client
 func (c *Client) searchResultHandler(server *server) core.HandlerFunc {
 	return func(text string) {
-		extractedPath, err := core.DownloadExtractDCCString(filepath.Join(server.config.DownloadDir, "books"), text, nil)
+		resultsDir, err := server.searchResultsDir()
+		if err != nil {
+			c.log.Println(err)
+			c.trySend(newEmptySearchResponse(DANGER, "Error when downloading search results."))
+			return
+		}
+		extractedPath, err := core.DownloadExtractDCCString(resultsDir, text, nil)
 		if err != nil {
 			c.log.Println(err)
 			c.trySend(newEmptySearchResponse(DANGER, "Error when downloading search results."))

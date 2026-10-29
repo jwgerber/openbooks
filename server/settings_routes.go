@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"os"
 	"path/filepath"
 
 	"github.com/evan-buss/openbooks/irc"
@@ -93,4 +94,12 @@ func (c *Client) reconnect(server *server) {
 		c.log.Println("Client left during reconnect; closing IRC session.")
 		c.irc.Disconnect()
 	}
+}
+
+// searchResultsDir is where search-result lists are downloaded and parsed.
+// It is kept outside the books folder, which tools like Calibre may watch
+// and import from (search results are .txt files, a format Calibre imports).
+func (server *server) searchResultsDir() (string, error) {
+	dir := filepath.Join(os.TempDir(), "openbooks-search")
+	return dir, os.MkdirAll(dir, 0o755)
 }
