@@ -10,7 +10,7 @@ import (
 
 func (server *server) NewIrcEventHandler(client *Client) core.EventHandler {
 	handler := core.EventHandler{}
-	handler[core.SearchResult] = client.searchResultHandler(server.config.DownloadDir)
+	handler[core.SearchResult] = client.searchResultHandler(server)
 	handler[core.BookResult] = client.bookResultHandler(server.config.DownloadDir, server.config.DisableBrowserDownloads)
 	handler[core.NoResults] = client.noResultsHandler
 	handler[core.BadServer] = client.badServerHandler
@@ -19,23 +19,35 @@ func (server *server) NewIrcEventHandler(client *Client) core.EventHandler {
 	handler[core.Ping] = client.pingHandler
 	handler[core.ServerList] = client.userListHandler(server.repository)
 	handler[core.Version] = client.versionHandler(server.config.UserAgent)
+	joinChannel := core.JoinOnWelcome(client.irc, server.currentSettings().Channel)
+	handler[core.Welcome] = func(text string) {
+		joinChannel(text)
+		client.joined.Store(true)
+	}
+	handler[core.NickInUse] = client.nickInUseHandler
 	return handler
 }
 
 // searchResultHandler downloads from DCC server, parses data, and sends data to client
-func (c *Client) searchResultHandler(downloadDir string) core.HandlerFunc {
+func (c *Client) searchResultHandler(server *server) core.HandlerFunc {
 	return func(text string) {
-		extractedPath, err := core.DownloadExtractDCCString(filepath.Join(downloadDir, "books"), text, nil)
+		resultsDir, err := server.searchResultsDir()
 		if err != nil {
 			c.log.Println(err)
-			c.send <- newErrorResponse("Error when downloading search results.")
+			c.trySend(newEmptySearchResponse(DANGER, "Error when downloading search results."))
+			return
+		}
+		extractedPath, err := core.DownloadExtractDCCString(resultsDir, text, nil)
+		if err != nil {
+			c.log.Println(err)
+			c.trySend(newEmptySearchResponse(DANGER, "Error when downloading search results."))
 			return
 		}
 
 		bookResults, parseErrors, err := core.ParseSearchFile(extractedPath)
 		if err != nil {
 			c.log.Println(err)
-			c.send <- newErrorResponse("Error when parsing search results.")
+			c.trySend(newEmptySearchResponse(DANGER, "Error when parsing search results."))
 			return
 		}
 
@@ -52,8 +64,14 @@ func (c *Client) searchResultHandler(downloadDir string) core.HandlerFunc {
 			}
 		}
 
+		bookResults = core.RankBooks(bookResults, core.RankOptions{
+			Query:       c.lastQuery,
+			FormatOrder: server.currentSettings().FormatOrder,
+			Online:      server.repository.servers.OnlineSet(),
+		})
+
 		c.log.Printf("Sending %d search results.\n", len(bookResults))
-		c.send <- newSearchResponse(bookResults, parseErrors)
+		c.trySend(newSearchResponse(bookResults, parseErrors))
 
 		err = os.Remove(extractedPath)
 		if err != nil {
@@ -68,37 +86,37 @@ func (c *Client) bookResultHandler(downloadDir string, disableBrowserDownloads b
 		extractedPath, err := core.DownloadExtractDCCString(filepath.Join(downloadDir, "books"), text, nil)
 		if err != nil {
 			c.log.Println(err)
-			c.send <- newErrorResponse("Error when downloading book.")
+			c.trySend(newFailedDownloadResponse("Error when downloading book."))
 			return
 		}
 
 		c.log.Printf("Sending book entitled '%s'.\n", filepath.Base(extractedPath))
-		c.send <- newDownloadResponse(extractedPath, disableBrowserDownloads)
+		c.trySend(newDownloadResponse(extractedPath, disableBrowserDownloads))
 	}
 }
 
 // NoResults is called when the server returns that nothing was found for the query
 func (c *Client) noResultsHandler(_ string) {
-	c.send <- newErrorResponse("No results found for the query.")
+	c.trySend(newEmptySearchResponse(WARNING, "No results found for the query."))
 }
 
 // BadServer is called when the requested download fails because the server is not available
 func (c *Client) badServerHandler(_ string) {
-	c.send <- newErrorResponse("Server is not available. Try another one.")
+	c.trySend(newFailedDownloadResponse("Server is not available. Try another one."))
 }
 
 // SearchAccepted is called when the user's query is accepted into the search queue
 func (c *Client) searchAcceptedHandler(_ string) {
-	c.send <- newStatusResponse(NOTIFY, "Search accepted into the queue.")
+	c.trySend(newStatusResponse(NOTIFY, "Search accepted into the queue."))
 }
 
 // MatchesFound is called when the server finds matches for the user's query
 func (c *Client) matchesFoundHandler(num string) {
-	c.send <- newStatusResponse(NOTIFY, fmt.Sprintf("Found %s results for your query.", num))
+	c.trySend(newStatusResponse(NOTIFY, fmt.Sprintf("Found %s results for your query.", num)))
 }
 
-func (c *Client) pingHandler(serverUrl string) {
-	c.irc.Pong(serverUrl)
+func (c *Client) pingHandler(line string) {
+	c.irc.Pong(core.PingToken(line))
 }
 
 func (c *Client) versionHandler(version string) core.HandlerFunc {
@@ -112,4 +130,13 @@ func (c *Client) userListHandler(repo *Repository) core.HandlerFunc {
 	return func(text string) {
 		repo.servers = core.ParseServers(text)
 	}
+}
+
+// nickInUseHandler retries registration with a new nickname after "433".
+// Without it the 001 welcome never arrives and the channel is never joined.
+func (c *Client) nickInUseHandler(_ string) {
+	nick := core.AlternateNick(c.irc.Username)
+	c.log.Printf("Nickname %s in use; trying %s.", c.irc.Username, nick)
+	c.irc.ChangeNick(nick)
+	c.sendConnected("Nickname in use, switched to " + nick + ".")
 }

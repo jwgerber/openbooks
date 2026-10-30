@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/evan-buss/openbooks/core"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
@@ -24,8 +25,9 @@ type server struct {
 	// Shared data
 	repository *Repository
 
-	// Registered clients.
-	clients map[uuid.UUID]*Client
+	// Registered clients, guarded by clientsMu.
+	clients   map[uuid.UUID]*Client
+	clientsMu sync.Mutex
 
 	// Register requests from the clients.
 	register chan *Client
@@ -40,6 +42,10 @@ type server struct {
 
 	// The time the last search was performed. Used to rate limit searches.
 	lastSearch time.Time
+
+	// Guards settings, which the settings panel can change at runtime.
+	settingsMu sync.RWMutex
+	settings   Settings
 }
 
 // Config contains settings for server
@@ -51,15 +57,35 @@ type Config struct {
 	DownloadDir             string
 	Basepath                string
 	Server                  string
+	Channel                 string
 	EnableTLS               bool
 	SearchTimeout           time.Duration
 	SearchBot               string
 	DisableBrowserDownloads bool
 	UserAgent               string
+	// Folder holding settings.json. Empty keeps settings in memory only.
+	ConfigDir string
 }
 
 func New(config Config) *server {
+	defaults := Settings{
+		Server:      config.Server,
+		EnableTLS:   config.EnableTLS,
+		Channel:     core.NormalizeChannel(config.Channel),
+		SearchBot:   config.SearchBot,
+		UserName:    config.UserName,
+		FormatOrder: core.DefaultFormatOrder,
+		DownloadDir: config.DownloadDir,
+	}
+	settings := defaults
+	if config.ConfigDir == "" {
+		log.Println("SERVER: no config dir set; settings changes will not survive a restart.")
+	} else {
+		settings = LoadSettings(filepath.Join(config.ConfigDir, settingsFileName), defaults)
+	}
+
 	return &server{
+		settings:   settings,
 		repository: NewRepository(),
 		config:     &config,
 		register:   make(chan *Client),
@@ -81,7 +107,7 @@ func Start(config Config) {
 		AllowCredentials: true,
 		AllowedOrigins:   []string{"http://127.0.0.1:5173"},
 		AllowedHeaders:   []string{"*"},
-		AllowedMethods:   []string{"GET", "DELETE"},
+		AllowedMethods:   []string{"GET", "PUT", "DELETE"},
 	}
 	router.Use(cors.New(corsConfig).Handler)
 
@@ -106,21 +132,25 @@ func (server *server) startClientHub(ctx context.Context) {
 	for {
 		select {
 		case client := <-server.register:
+			server.clientsMu.Lock()
 			server.clients[client.uuid] = client
+			server.clientsMu.Unlock()
 		case client := <-server.unregister:
+			server.clientsMu.Lock()
 			if _, ok := server.clients[client.uuid]; ok {
-				_, cancel := context.WithCancel(client.ctx)
+				client.markClosed()
 				close(client.send)
-				cancel()
 				delete(server.clients, client.uuid)
 			}
+			server.clientsMu.Unlock()
 		case <-ctx.Done():
+			server.clientsMu.Lock()
 			for _, client := range server.clients {
-				_, cancel := context.WithCancel(client.ctx)
+				client.markClosed()
 				close(client.send)
-				cancel()
 				delete(server.clients, client.uuid)
 			}
+			server.clientsMu.Unlock()
 			return
 		}
 	}
@@ -144,4 +174,22 @@ func createBooksDirectory(config Config) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+// clientList returns a snapshot of the registered clients.
+func (server *server) clientList() []*Client {
+	server.clientsMu.Lock()
+	defer server.clientsMu.Unlock()
+	list := make([]*Client, 0, len(server.clients))
+	for _, c := range server.clients {
+		list = append(list, c)
+	}
+	return list
+}
+
+func (server *server) lookupClient(id uuid.UUID) (*Client, bool) {
+	server.clientsMu.Lock()
+	defer server.clientsMu.Unlock()
+	c, ok := server.clients[id]
+	return c, ok
 }

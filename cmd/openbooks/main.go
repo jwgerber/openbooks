@@ -23,6 +23,7 @@ var ircVersion = "4.3.0"
 type GlobalFlags struct {
 	UserName  string
 	Server    string
+	Channel   string
 	Log       bool
 	SearchBot string
 	EnableTLS bool
@@ -35,10 +36,10 @@ var desktopConfig server.Config
 
 func init() {
 	desktopCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Enable debug mode.")
-	desktopCmd.PersistentFlags().StringVarP(&globalFlags.UserName, "name", "n", "", "Username used to connect to IRC server.")
-	desktopCmd.MarkPersistentFlagRequired("name")
-	desktopCmd.PersistentFlags().StringVarP(&globalFlags.Server, "server", "s", "irc.irchighway.net:6697", "IRC server to connect to.")
-	desktopCmd.PersistentFlags().BoolVar(&globalFlags.EnableTLS, "tls", true, "Connect to server using TLS.")
+	desktopCmd.PersistentFlags().StringVarP(&globalFlags.UserName, "name", "n", "", "Username used to connect to IRC server. Random if empty.")
+	desktopCmd.PersistentFlags().StringVarP(&globalFlags.Server, "server", "s", "irc.undernet.org:6667", "IRC server to connect to.")
+	desktopCmd.PersistentFlags().StringVarP(&globalFlags.Channel, "channel", "c", "bookz", "IRC channel to join (with or without '#').")
+	desktopCmd.PersistentFlags().BoolVar(&globalFlags.EnableTLS, "tls", false, "Connect to server using TLS.")
 	desktopCmd.PersistentFlags().BoolVarP(&globalFlags.Log, "log", "l", false, "Save raw IRC logs for each client connection.")
 	desktopCmd.PersistentFlags().StringVar(&globalFlags.SearchBot, "searchbot", "search", "The IRC bot that handles search queries. Try 'searchook' if 'search' is down.")
 	desktopCmd.PersistentFlags().StringVarP(&globalFlags.UserAgent, "useragent", "u", fmt.Sprintf("OpenBooks %s", ircVersion), "UserAgent / Version Reported to IRC Server.")
@@ -56,7 +57,7 @@ func init() {
 
 var desktopCmd = &cobra.Command{
 	Use:   "openbooks",
-	Short: "Quickly and easily download eBooks from IRCHighway.",
+	Short: "Quickly and easily download eBooks from IRC book channels.",
 	Long:  "Runs OpenBooks in desktop mode. This allows you to run OpenBooks like a regular desktop application. This functionality utilizes your OS's native browser renderer and as such may not work on certain operating systems.",
 	PreRun: func(cmd *cobra.Command, args []string) {
 		bindGlobalServerFlags(&desktopConfig)

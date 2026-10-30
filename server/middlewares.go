@@ -44,7 +44,7 @@ func (server *server) getClient(ctx context.Context) *Client {
 		return nil
 	}
 
-	if client, ok := server.clients[user]; ok {
+	if client, ok := server.lookupClient(user); ok {
 		return client
 	}
 

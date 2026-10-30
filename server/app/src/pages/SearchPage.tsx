@@ -15,6 +15,8 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import image from "../assets/reading.svg";
 import BookTable from "../components/tables/BookTable";
 import ErrorTable from "../components/tables/ErrorTable";
+import TopPicks from "../components/tables/TopPicks";
+import { isSearchInFlight, SEARCH_IN_FLIGHT_MS } from "../state/historySlice";
 import { MessageType } from "../state/messages";
 import { sendMessage, sendSearch, toggleSidebar } from "../state/stateSlice";
 import { useAppDispatch, useAppSelector } from "../state/store";
@@ -76,6 +78,17 @@ export default function SearchPage() {
     setShowErrors(false);
   }, [activeItem]);
 
+  // isSearchInFlight expires after a timeout; re-render then so the search
+  // box unlocks even if the reply never arrives.
+  const [, setExpiredAt] = useState(0);
+  useEffect(() => {
+    if (!isSearchInFlight(activeItem)) return;
+    const remaining =
+      SEARCH_IN_FLIGHT_MS - (Date.now() - activeItem!.timestamp);
+    const timer = setTimeout(() => setExpiredAt(Date.now()), remaining + 100);
+    return () => clearTimeout(timer);
+  }, [activeItem]);
+
   const searchHandler = (event: FormEvent) => {
     event.preventDefault();
 
@@ -126,7 +139,7 @@ export default function SearchPage() {
           <TextInput
             className={classes.wFull}
             variant="filled"
-            disabled={activeItem !== null && !activeItem.results}
+            disabled={isSearchInFlight(activeItem)}
             value={searchQuery}
             onChange={(e: any) => setSearchQuery(e.target.value)}
             placeholder={
@@ -188,7 +201,10 @@ export default function SearchPage() {
       ) : errorMode ? (
         errorTable
       ) : (
-        bookTable
+        <>
+          <TopPicks books={activeItem?.results ?? []} />
+          {bookTable}
+        </>
       )}
     </Stack>
   );

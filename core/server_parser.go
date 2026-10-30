@@ -49,3 +49,30 @@ func ignoreCaseSort(items []string) func(i, j int) bool {
 		return strings.ToLower(items[i]) < strings.ToLower(items[j])
 	}
 }
+
+// OnlineSet returns every nick in the channel, lowercased. On networks like
+// Undernet many file servers are not opped, so any nick counts as online.
+func (s IrcServers) OnlineSet() map[string]bool {
+	online := make(map[string]bool, len(s.ElevatedUsers)+len(s.RegularUsers))
+	for _, nick := range append(append([]string{}, s.ElevatedUsers...), s.RegularUsers...) {
+		online[strings.ToLower(nick)] = true
+	}
+	return online
+}
+
+// UserList accumulates the nick lists of 353 NAMES lines. Large channels
+// split NAMES across many lines, so only the part after " :" is kept.
+type UserList struct {
+	nicks strings.Builder
+}
+
+func (u *UserList) Add(namesLine string) {
+	if i := strings.Index(namesLine, " :"); i >= 0 {
+		u.nicks.WriteString(namesLine[i+2:])
+		u.nicks.WriteString(" ")
+	}
+}
+
+func (u *UserList) String() string { return u.nicks.String() }
+
+func (u *UserList) Reset() { u.nicks.Reset() }

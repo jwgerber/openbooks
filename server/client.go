@@ -3,6 +3,8 @@ package server
 import (
 	"context"
 	"log"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/evan-buss/openbooks/irc"
@@ -48,6 +50,18 @@ type Client struct {
 	irc *irc.Conn
 
 	log *log.Logger
+
+	// Query of the most recent search, used to rank its results.
+	lastQuery string
+
+	// mu guards closed and sends on the send channel. The hub closes send
+	// when the browser leaves; background work (e.g. a reconnect) may still
+	// try to send afterwards.
+	mu     sync.Mutex
+	closed bool
+
+	// joined is set once the channel JOIN has been sent after the 001 welcome.
+	joined atomic.Bool
 
 	// Context is used to signal when this client should close.
 	ctx context.Context
@@ -122,4 +136,26 @@ func (server *server) writePump(c *Client) {
 			}
 		}
 	}
+}
+
+// trySend queues a message for the browser, dropping it if the client has
+// left or its queue is full rather than panicking or blocking.
+func (c *Client) trySend(message interface{}) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.closed {
+		return
+	}
+	select {
+	case c.send <- message:
+	default:
+		c.log.Println("Send queue full; dropping message.")
+	}
+}
+
+// markClosed stops further sends; the caller then closes c.send.
+func (c *Client) markClosed() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.closed = true
 }

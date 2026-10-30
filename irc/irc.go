@@ -3,7 +3,10 @@ package irc
 import (
 	"crypto/tls"
 	"net"
+	"time"
 )
+
+const dialTimeout = 30 * time.Second
 
 // Conn represents an IRC connection to a server
 type Conn struct {
@@ -28,10 +31,14 @@ func New(username, realname string) *Conn {
 func (i *Conn) Connect(address string, enableTLS bool) error {
 	var conn net.Conn
 	var err error
+	// Networks like Undernet round-robin across many servers and some are
+	// often down. Without a timeout a dead address hangs for minutes before
+	// the next one is tried; Dialer splits Timeout across all addresses.
+	dialer := &net.Dialer{Timeout: dialTimeout}
 	if enableTLS {
-		conn, err = tls.Dial("tcp", address, &tls.Config{InsecureSkipVerify: true})
+		conn, err = tls.DialWithDialer(dialer, "tcp", address, &tls.Config{InsecureSkipVerify: true})
 	} else {
-		conn, err = net.Dial("tcp", address)
+		conn, err = dialer.Dial("tcp", address)
 	}
 
 	if err != nil {
@@ -46,6 +53,15 @@ func (i *Conn) Connect(address string, enableTLS bool) error {
 	i.Write([]byte(user))
 	i.Write([]byte(nick))
 	return nil
+}
+
+// ChangeNick asks the server for a new nickname.
+func (i *Conn) ChangeNick(nick string) {
+	if !i.IsConnected() {
+		return
+	}
+	i.Username = nick
+	i.Write([]byte("NICK " + nick + "\r\n"))
 }
 
 // Disconnect closes connection to the IRC server

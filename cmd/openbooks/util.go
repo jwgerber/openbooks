@@ -13,6 +13,7 @@ func bindGlobalServerFlags(config *server.Config) {
 	config.UserName = globalFlags.UserName
 	config.Log = globalFlags.Log
 	config.Server = globalFlags.Server
+	config.Channel = globalFlags.Channel
 	config.SearchBot = globalFlags.SearchBot
 	config.EnableTLS = globalFlags.EnableTLS
 }

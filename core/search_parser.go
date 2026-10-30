@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"sort"
 	"strings"
 )
 
@@ -40,6 +39,7 @@ type BookDetail struct {
 	Format string `json:"format"`
 	Size   string `json:"size"`
 	Full   string `json:"full"`
+	Score  int    `json:"score"`
 }
 
 type ParseError struct {
@@ -90,8 +90,6 @@ func ParseSearch(reader io.Reader) ([]BookDetail, []ParseError) {
 			}
 		}
 	}
-
-	sort.Slice(books, func(i, j int) bool { return books[i].Server < books[j].Server })
 
 	return books, parseErrors
 }
@@ -175,8 +173,6 @@ func ParseSearchV2(reader io.Reader) ([]BookDetail, []ParseError) {
 			}
 		}
 	}
-
-	sort.Slice(books, func(i, j int) bool { return books[i].Server < books[j].Server })
 
 	return books, parseErrors
 }

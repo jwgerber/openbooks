@@ -91,6 +91,9 @@ const route = (dispatch: AppDispatch, msg: MessageEvent<any>): void => {
         return notification;
       case MessageType.SEARCH:
         dispatch(setSearchResults(response as SearchResponse));
+        // The server refreshes NAMES before each search; refetch so the
+        // online dots match what ranking used.
+        dispatch(openbooksApi.util.invalidateTags(["servers"]));
         return notification;
       case MessageType.DOWNLOAD:
         downloadFile((response as DownloadResponse)?.downloadPath);

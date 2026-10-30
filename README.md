@@ -1,5 +1,39 @@
 # openbooks
 
+## This fork
+
+A fork of [evan-buss/openbooks](https://github.com/evan-buss/openbooks) for IRC book channels beyond IRCHighway. It defaults to Undernet `#bookz` and adds:
+
+- **Ranked results.** Results are sorted by how well the author and title match your search, then your format order, then how closely the title matches (fewer extra words), then release quality (retail is boosted; scans, OCR, and v1–v4 are pushed down), then whether the server is in the channel. The five best appear as **Top picks** above the full list, and nothing is hidden.
+- **A settings panel** (the gear icon in the sidebar) for server, channel, search trigger, TLS, nickname, and format order. Saving reconnects to IRC. Settings are stored in `/config/settings.json` and survive restarts.
+- **Undernet fixes.** It joins the channel after the server's welcome, times out dead servers, and reads multi-line user lists.
+
+| Setting | Default |
+|---|---|
+| Server | `irc.undernet.org:6667` |
+| TLS | off |
+| Channel | `#bookz` |
+| Search trigger | `@search` |
+| Nickname | random (`readerNNNN`) |
+| Format order | epub, azw3, mobi, pdf |
+| Download folder | `/books` (container path) |
+
+Container flags (`--server`, `--channel`, `--searchbot`, `--tls`, `--name`) set only the starting defaults. Once `settings.json` exists, it wins.
+
+### Run on a NAS
+
+```bash
+git clone https://github.com/jwgerber/openbooks.git && cd openbooks
+mkdir -p books config
+docker compose up -d --build
+```
+
+Then open `http://<nas>:8080`. Point `./books` at your NAS share in `docker-compose.yml`. Books are saved there and also download to your browser.
+
+To use IRCHighway instead, set the server to `irc.irchighway.net:6697`, turn TLS on, and set the channel to `#ebooks` in settings.
+
+---
+
 > NOTE: Going forward only the latest release will be supported. If you encounter any issues, be sure you are using the latest version.
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/evanbuss/openbooks.svg)](https://hub.docker.com/r/evanbuss/openbooks/)

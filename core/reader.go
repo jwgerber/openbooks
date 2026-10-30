@@ -23,6 +23,8 @@ const (
 	ServerList     = event(8)
 	Ping           = event(9)
 	Version        = event(10)
+	Welcome        = event(11)
+	NickInUse      = event(12)
 )
 
 // Unique identifiers found in the message for various different events.
@@ -38,13 +40,62 @@ const (
 	beginUserList          = "353"
 	endUserList            = "366"
 	versionInquiry         = "\x01VERSION\x01"
+	welcomeNumeric         = "001"
+	nickInUseNumeric       = "433"
+	nickUnavailableNumeric = "437"
 )
+
+// userListPart is an internal event for a 353 NAMES line; StartReader
+// accumulates these and emits ServerList on the closing 366.
+const userListPart = event(-1)
+
+// classify determines which event a raw IRC line represents.
+func classify(text string) event {
+	// Numerics are matched on the command field only: chat lines often
+	// contain numbers like "1366" that must not end a NAMES list.
+	if fields := strings.Fields(text); len(fields) > 1 {
+		switch fields[1] {
+		case welcomeNumeric:
+			return Welcome
+		case nickInUseNumeric, nickUnavailableNumeric:
+			return NickInUse
+		case beginUserList:
+			return userListPart
+		case endUserList:
+			return ServerList
+		}
+	}
+
+	switch {
+	case strings.Contains(text, sendMessage):
+		if strings.Contains(text, searchResultIdentifier) {
+			return SearchResult
+		}
+		return BookResult
+	case strings.Contains(text, noticeMessage):
+		switch {
+		case strings.Contains(text, noResults):
+			return NoResults
+		case strings.Contains(text, serverUnavailable):
+			return BadServer
+		case strings.Contains(text, searchAccepted):
+			return SearchAccepted
+		case strings.Contains(text, numMatches):
+			return MatchesFound
+		}
+	case strings.Contains(text, pingMessage):
+		return Ping
+	case strings.Contains(text, versionInquiry):
+		return Version
+	}
+	return noOp
+}
 
 type HandlerFunc func(text string)
 type EventHandler map[event]HandlerFunc
 
 func StartReader(ctx context.Context, irc *irc.Conn, handler EventHandler) {
-	var users strings.Builder
+	var users UserList
 	scanner := bufio.NewScanner(irc)
 
 	for scanner.Scan() {
@@ -62,36 +113,18 @@ func StartReader(ctx context.Context, irc *irc.Conn, handler EventHandler) {
 				invoke(text)
 			}
 
-			event := noOp
-			if strings.Contains(text, sendMessage) {
-				if strings.Contains(text, searchResultIdentifier) {
-					event = SearchResult
-				} else {
-					event = BookResult
-				}
-			} else if strings.Contains(text, noticeMessage) {
-				if strings.Contains(text, noResults) {
-					event = NoResults
-				} else if strings.Contains(text, serverUnavailable) {
-					event = BadServer
-				} else if strings.Contains(text, searchAccepted) {
-					event = SearchAccepted
-				} else if strings.Contains(text, numMatches) {
-					start := strings.LastIndex(text, "returned") + 9
-					end := strings.LastIndex(text, "matches") - 1
-					text = text[start:end]
-					event = MatchesFound
-				}
-			} else if strings.Contains(text, beginUserList) {
-				users.WriteString(text)
-			} else if strings.Contains(text, endUserList) {
-				event = ServerList
+			event := classify(text)
+			switch event {
+			case MatchesFound:
+				start := strings.LastIndex(text, "returned") + 9
+				end := strings.LastIndex(text, "matches") - 1
+				text = text[start:end]
+			case userListPart:
+				users.Add(text)
+				event = noOp
+			case ServerList:
 				text = users.String()
 				users.Reset()
-			} else if strings.Contains(text, pingMessage) {
-				event = Ping
-			} else if strings.Contains(text, versionInquiry) {
-				event = Version
 			}
 
 			if invoke, ok := handler[event]; ok {

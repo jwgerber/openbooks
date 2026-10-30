@@ -21,7 +21,8 @@ WORKDIR /app
 COPY --from=build /go/src/cmd/openbooks/openbooks .
 
 EXPOSE 80
-VOLUME [ "/books" ]
+VOLUME [ "/books", "/config" ]
 ENV BASE_PATH=/
+ENV CONFIG_DIR=/config
 
-ENTRYPOINT ["./openbooks", "server", "--dir", "/books", "--port", "80"]
+ENTRYPOINT ["./openbooks", "server", "--dir", "/books", "--config-dir", "/config", "--port", "80"]

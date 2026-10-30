@@ -23,7 +23,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { MagnifyingGlass, User } from "phosphor-react";
 import { useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
-import { useGetServersQuery } from "../../state/api";
+import { isOnline, useGetServersQuery } from "../../state/api";
 import { BookDetail } from "../../state/messages";
 import { sendDownload } from "../../state/stateSlice";
 import { RootState, useAppDispatch } from "../../state/store";
@@ -71,7 +71,7 @@ export default function BookTable({ books }: BookTableProps) {
           />
         ),
         cell: (props) => {
-          const online = servers?.includes(props.getValue());
+          const online = isOnline(servers, props.getValue());
           return (
             <Text
               size={12}
@@ -254,7 +254,7 @@ export default function BookTable({ books }: BookTableProps) {
   );
 }
 
-function DownloadButton({ book }: { book: string }) {
+export function DownloadButton({ book }: { book: string }) {
   const dispatch = useAppDispatch();
 
   const [clicked, setClicked] = useState(false);

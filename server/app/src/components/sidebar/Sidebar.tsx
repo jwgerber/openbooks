@@ -15,6 +15,7 @@ import {
   BellSimple,
   IdentificationBadge,
   MoonStars,
+  GearSix,
   Plugs,
   Sidebar as SidebarIcon,
   Sun
@@ -22,6 +23,8 @@ import {
 import { toggleDrawer } from "../../state/notificationSlice";
 import { toggleSidebar } from "../../state/stateSlice";
 import { useAppDispatch, useAppSelector } from "../../state/store";
+import { useState } from "react";
+import SettingsDrawer from "../settings/SettingsDrawer";
 import History from "./History";
 import Library from "./Library";
 
@@ -50,6 +53,7 @@ export default function Sidebar() {
   const connected = useAppSelector((store) => store.state.isConnected);
   const username = useAppSelector((store) => store.state.username);
   const opened = useAppSelector((store) => store.state.isSidebarOpen);
+  const [settingsOpened, setSettingsOpened] = useState(false);
 
   const [index, setIndex] = useLocalStorage<"books" | "history">({
     key: "sidebar-state",
@@ -93,7 +97,7 @@ export default function Sidebar() {
         </Group>
 
         <Text size="sm" color="dimmed">
-          Download eBooks from IRC Highway
+          Download eBooks from IRC
         </Text>
 
         <SegmentedControl
@@ -147,6 +151,13 @@ export default function Sidebar() {
           </Group>
 
           <Group align="end" spacing="xs">
+            <Tooltip label="Settings">
+              <ActionIcon
+                aria-label="Settings"
+                onClick={() => setSettingsOpened(true)}>
+                <GearSix size={18} weight="bold" />
+              </ActionIcon>
+            </Tooltip>
             <ActionIcon onClick={() => toggleColorScheme()}>
               {colorScheme === "dark" ? (
                 <Sun size={18} weight="bold" />
@@ -160,6 +171,10 @@ export default function Sidebar() {
           </Group>
         </Group>
       </Navbar.Section>
+      <SettingsDrawer
+        opened={settingsOpened}
+        onClose={() => setSettingsOpened(false)}
+      />
     </Navbar>
   );
 }

@@ -14,7 +14,7 @@ import { Column, Table } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { CaretDown, MagnifyingGlass } from "phosphor-react";
 import { CSSProperties, useRef, useState } from "react";
-import { useGetServersQuery } from "../../../state/api";
+import { isOnline, useGetServersQuery } from "../../../state/api";
 
 const stringContains = (first: string, second: string): boolean => {
   return first.toLowerCase().includes(second.toLowerCase());
@@ -267,7 +267,7 @@ export function ServerFacetEntry({
 }: FacetEntryProps) {
   const { classes, cx } = useFacetStyles();
   const { data: servers } = useGetServersQuery(null);
-  const serverOnline = servers?.includes(entry) ?? false;
+  const serverOnline = isOnline(servers, entry);
 
   return (
     <Box

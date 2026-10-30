@@ -5,8 +5,6 @@ import (
 	"embed"
 	"encoding/json"
 	"errors"
-	"fmt"
-	"github.com/evan-buss/openbooks/irc"
 	"io/fs"
 	"log"
 	"net/http"
@@ -30,6 +28,8 @@ func (server *server) registerRoutes() *chi.Mux {
 	router.Get("/ws", server.serveWs())
 	router.Get("/stats", server.statsHandler())
 	router.Get("/servers", server.serverListHandler())
+	router.Get("/settings", server.getSettingsHandler())
+	router.Put("/settings", server.putSettingsHandler())
 
 	router.Group(func(r chi.Router) {
 		r.Use(server.requireUser)
@@ -58,11 +58,9 @@ func (server *server) serveWs() http.HandlerFunc {
 		}
 
 		userId, err := uuid.Parse(cookie.Value)
-		_, alreadyConnected := server.clients[userId]
-
 		// If invalid UUID or the same browser tries to connect again or multiple browser connections
 		// Don't connect to IRC or create new client
-		if err != nil || alreadyConnected || len(server.clients) > 0 {
+		if err != nil || len(server.clientList()) > 0 {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -81,8 +79,8 @@ func (server *server) serveWs() http.HandlerFunc {
 			conn: conn,
 			send: make(chan interface{}, 128),
 			uuid: userId,
-			irc:  irc.New(server.config.UserName, server.config.UserAgent),
-			log:  log.New(os.Stdout, fmt.Sprintf("CLIENT (%s): ", server.config.UserName), log.LstdFlags|log.Lmsgprefix),
+			irc:  server.newIrcConn(),
+			log:  log.New(os.Stdout, "CLIENT: ", log.LstdFlags|log.Lmsgprefix),
 			ctx:  context.Background(),
 		}
 
@@ -115,9 +113,10 @@ func (server *server) statsHandler() http.HandlerFunc {
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		result := make([]statsReponse, 0, len(server.clients))
+		clients := server.clientList()
+		result := make([]statsReponse, 0, len(clients))
 
-		for _, client := range server.clients {
+		for _, client := range clients {
 			details := statsReponse{
 				UUID: client.uuid.String(),
 				Name: client.irc.Username,
